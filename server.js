@@ -121,6 +121,6 @@ app.listen(port, () => {
     }
     
     db = database; // Assign the connected database
-    console.log(`Server is running on https://accessible-precious-braid.glitch.me`);
+    console.log(`Server is running on https://invoices-rho.vercel.app/`);
   });
 });
