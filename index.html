@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>نظام حساب فواتير المعلمات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .main-content {
+            flex-grow: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .teacher-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .teacher-list li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .teacher-list li:hover {
+            background-color: #f0f0f0;
+        }
+        .teacher-list li.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 8px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .tab button {
+            background-color: inherit;
+            float: right;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            margin: 0;
+            width: auto;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        .teacher-summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- القائمة الجانبية -->
+        <div class="sidebar">
+            <h2>قائمة المعلمات</h2>
+            <ul id="teacherList" class="teacher-list">
+                <!-- سيتم ملؤها بالجافاسكريبت -->
+            </ul>
+        </div>
+
+        <!-- المحتوى الرئيسي -->
+        <div class="main-content">
+            <h1>نظام حساب فواتير المعلمات</h1>
+            
+            <div class="tab">
+                <button class="tablinks active" onclick="openTab(event, 'newBill')">فاتورة جديدة</button>
+                <button class="tablinks" onclick="openTab(event, 'newPayment')">تسجيل مدفوعات</button>
+            </div>
+
+            <!-- قسم الفاتورة الجديدة -->
+            <div id="newBill" class="tabcontent" style="display: block;">
+                <div class="form-group">
+                    <label for="teacherName">اسم المعلمة:</label>
+                    <input type="text" id="teacherName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date">التاريخ:</label>
+                    <input type="date" id="date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="attendees">عدد الحاضرين:</label>
+                    <input type="number" id="attendees" min="1" required>
+                </div>
+                
+                <button onclick="calculateBill()">احسب الفاتورة</button>
+                
+                <div id="currentBill" class="summary"></div>
+            </div>
+
+            <!-- قسم تسجيل المدفوعات -->
+            <div id="newPayment" class="tabcontent">
+                <div class="form-group">
+                    <label for="paymentTeacherName">اسم المعلمة:</label>
+                    <input type="text" id="paymentTeacherName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentDate">تاريخ الدفع:</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentAmount">المبلغ المدفوع:</label>
+                    <input type="number" id="paymentAmount" min="1" required>
+                </div>
+                
+                <button onclick="addPayment()">تسجيل الدفع</button>
+            </div>
+
+            <!-- ملخص حساب المعلمة -->
+            <div id="teacherSummary" class="teacher-summary hidden">
+                <h2>ملخص حساب: <span id="selectedTeacherName"></span></h2>
+                <div id="teacherTotalSummary"></div>
+            </div>
+            
+            <!-- سجل الفواتير -->
+            <div id="billsSection" class="section">
+                <h2>سجل الفواتير</h2>
+                <table id="billsTable">
+                    <thead>
+                        <tr>
+                            <th>اسم المعلمة</th>
+                            <th>التاريخ</th>
+                            <th>عدد الحاضرين</th>
+                            <th>المبلغ</th>
+                            <!-- <th>المدفوع</th> -->
+                            <!-- <th>المتبقي</th> -->
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- سجل المدفوعات -->
+            <div id="paymentsSection" class="section">
+                <h2>سجل المدفوعات</h2>
+                <table id="paymentsTable">
+                    <thead>
+                        <tr>
+                            <th>اسم المعلمة</th>
+                            <th>تاريخ الدفع</th>
+                            <th>المبلغ المدفوع</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/api';
+
+async function fetchData() {
+    const response = await fetch(`${apiUrl}/data`);
+    const data = await response.json();
+    return data;
+}
+
+async function updateTeachersList() {
+    const data = await fetchData();
+    const teacherList = document.getElementById('teacherList');
+    teacherList.innerHTML = '';
+
+    data.teachers.sort().forEach(teacher => {
+        const li = document.createElement('li');
+        li.textContent = teacher;
+        li.onclick = () => showTeacherDetails(teacher);
+        teacherList.appendChild(li);
+    });
+    teachers = data.teachers;
+}
+
+async function calculateBill() {
+    const teacherName = document.getElementById('teacherName').value;
+    const date = document.getElementById('date').value;
+    const attendees = parseInt(document.getElementById('attendees').value);
+
+    if (!teacherName || !date || !attendees) {
+        alert('برجاء ملء جميع البيانات');
+        return;
+    }
+
+    let amount;
+    if (attendees >= 5) {
+        amount = 250;
+    } else {
+        amount = attendees * 50;
+    }
+
+    const bill = {
+        teacherName,
+        date,
+        attendees,
+        amount,
+        // paid: 0,
+        // remaining: amount
+    };
+
+    await fetch(`${apiUrl}/bills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bill)
+    });
+
+    updateTeachersList();
+    updateBillsTable();
+    showCurrentBill(bill);
+    showTeacherDetails(teacherName);
+}
+
+async function addPayment() {
+    const teacherName = document.getElementById('paymentTeacherName').value;
+    const date = document.getElementById('paymentDate').value;
+    const amount = parseInt(document.getElementById('paymentAmount').value);
+
+    if (!teacherName || !date || !amount) {
+        alert('برجاء ملء جميع بيانات الدفع');
+        return;
+    }
+
+    const payment = {
+        teacherName,
+        date,
+        amount
+    };
+
+    await fetch(`${apiUrl}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payment)
+    });
+
+    updateBillsTable();
+    updatePaymentsTable();
+    showTeacherDetails(teacherName);
+
+    // Clear payment form
+    document.getElementById('paymentTeacherName').value = '';
+    document.getElementById('paymentDate').value = '';
+    document.getElementById('paymentAmount').value = '';
+}
+
+async function updateBillsTable() {
+    const data = await fetchData();
+    const tbody = document.querySelector('#billsTable tbody');
+    tbody.innerHTML = '';
+
+    data.bills.forEach(bill => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = bill.teacherName;
+        row.insertCell().textContent = bill.date;
+        row.insertCell().textContent = bill.attendees;
+        row.insertCell().textContent = bill.amount;
+        // row.insertCell().textContent = bill.paid;
+        // row.insertCell().textContent = bill.remaining;
+    });
+    bills = data.bills;
+}
+
+async function updatePaymentsTable() {
+    const data = await fetchData();
+    const tbody = document.querySelector('#paymentsTable tbody');
+    tbody.innerHTML = '';
+
+    data.payments.forEach(payment => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = payment.teacherName;
+        row.insertCell().textContent = payment.date;
+        row.insertCell().textContent = payment.amount;
+    });
+    payments = data.payments;
+}
+
+        let bills = [];
+        let payments = [];
+        let teachers = new Set();
+        
+// Initialize data on page load
+window.onload = async () => {
+    await updateTeachersList();
+    await updateBillsTable();
+    await updatePaymentsTable();
+};
+
+        // function updateTeachersList() {
+        //     const teacherList = document.getElementById('teacherList');
+        //     teacherList.innerHTML = '';
+            
+        //     Array.from(teachers).sort().forEach(teacher => {
+        //         const li = document.createElement('li');
+        //         li.textContent = teacher;
+        //         li.onclick = () => showTeacherDetails(teacher);
+        //         teacherList.appendChild(li);
+        //     });
+        // }
+
+        function calculateTeacherSummary(teacherName) {
+            const teacherBills = bills.filter(bill => bill.teacherName === teacherName);
+            const teacherPayments = payments.filter(payment => payment.teacherName === teacherName);
+            
+            const totalBilled = teacherBills.reduce((sum, bill) => sum + bill.amount, 0);
+            const totalPaid = teacherPayments.reduce((sum, payment) => sum + payment.amount, 0);
+            const remaining = totalBilled - totalPaid;
+
+            return {
+                totalBilled,
+                totalPaid,
+                remaining,
+                billsCount: teacherBills.length,
+                paymentsCount: teacherPayments.length
+            };
+        }
+
+        function showTeacherDetails(teacherName) {
+            // تحديث العنصر النشط في القائمة
+            document.querySelectorAll('#teacherList li').forEach(li => {
+                li.classList.remove('active');
+                if (li.textContent === teacherName) {
+                    li.classList.add('active');
+                }
+            });
+
+            // عرض ملخص المعلمة
+            const summary = calculateTeacherSummary(teacherName);
+            document.getElementById('selectedTeacherName').textContent = teacherName;
+            document.getElementById('teacherTotalSummary').innerHTML = `
+                <p>إجمالي الفواتير: ${summary.totalBilled} جنيه</p>
+                <p>إجمالي المدفوعات: ${summary.totalPaid} جنيه</p>
+                <p>المبلغ المتبقي: ${summary.remaining} جنيه</p>
+                <p>عدد الفواتير: ${summary.billsCount}</p>
+                <p>عدد المدفوعات: ${summary.paymentsCount}</p>
+            `;
+            document.getElementById('teacherSummary').classList.remove('hidden');
+
+            // تحديث الجداول لعرض بيانات المعلمة المحددة فقط
+            updateBillsTable(teacherName);
+            updatePaymentsTable(teacherName);
+        }
+        
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // function calculateBill() {
+        //     const teacherName = document.getElementById('teacherName').value;
+        //     const date = document.getElementById('date').value;
+        //     const attendees = parseInt(document.getElementById('attendees').value);
+            
+        //     if (!teacherName || !date || !attendees) {
+        //         alert('برجاء ملء جميع البيانات');
+        //         return;
+        //     }
+            
+        //     let amount;
+        //     if (attendees >= 5) {
+        //         amount = 250;
+        //     } else {
+        //         amount = attendees * 50;
+        //     }
+            
+        //     const bill = {
+        //         teacherName,
+        //         date,
+        //         attendees,
+        //         amount,
+        //         paid: 0,
+        //         remaining: amount
+        //     };
+            
+        //     bills.push(bill);
+        //     teachers.add(teacherName);
+            
+        //     updateTeachersList();
+        //     updateBillsTable();
+        //     showCurrentBill(bill);
+        //     showTeacherDetails(teacherName);
+        // }
+        
+        // function addPayment() {
+        //     const teacherName = document.getElementById('paymentTeacherName').value;
+        //     const date = document.getElementById('paymentDate').value;
+        //     const amount = parseInt(document.getElementById('paymentAmount').value);
+            
+        //     if (!teacherName || !date || !amount) {
+        //         alert('برجاء ملء جميع بيانات الدفع');
+        //         return;
+        //     }
+            
+        //     const teacherBills = bills.filter(bill => bill.teacherName === teacherName);
+        //     if (teacherBills.length === 0) {
+        //         alert('لا توجد فواتير لهذه المعلمة');
+        //         return;
+        //     }
+            
+        //     const teacherSummary = calculateTeacherSummary(teacherName);
+        //     if (amount > teacherSummary.remaining) {
+        //         alert('المبلغ المدفوع أكبر من المتبقي');
+        //         return;
+        //     }
+            
+        //     const payment = {
+        //         teacherName,
+        //         date,
+        //         amount
+        //     };
+            
+        //     payments.push(payment);
+            
+        //     // تحديث المدفوعات في الفواتير
+        //     let remainingPayment = amount;
+        //     for (let bill of teacherBills) {
+        //         if (bill.remaining > 0 && remainingPayment > 0) {
+        //             const paymentForBill = Math.min(bill.remaining, remainingPayment);
+        //             bill.paid += paymentForBill;
+        //             bill.remaining -= paymentForBill;
+        //             remainingPayment -= paymentForBill;
+        //         }
+        //     }
+            
+        //     updateBillsTable();
+        //     updatePaymentsTable();
+        //     showTeacherDetails(teacherName);
+            
+        //     // تفريغ حقول نموذج الدفع
+        //     document.getElementById('paymentTeacherName').value = '';
+        //     document.getElementById('paymentDate').value = '';
+        //     document.getElementById('paymentAmount').value = '';
+        // }
+        
+        // function updateBillsTable() {
+        //     const tbody = document.querySelector('#billsTable tbody');
+        //     tbody.innerHTML = '';
+            
+        //     bills.forEach(bill => {
+        //         const row = tbody.insertRow();
+        //         row.insertCell().textContent = bill.teacherName;
+        //         row.insertCell().textContent = bill.date;
+        //         row.insertCell().textContent = bill.attendees;
+        //         row.insertCell().textContent = bill.amount;
+        //         row.insertCell().textContent = bill.paid;
+        //         row.insertCell().textContent = bill.remaining;
+        //     });
+        // }
+        
+        // function updatePaymentsTable() {
+        //     const tbody = document.querySelector('#paymentsTable tbody');
+        //     tbody.innerHTML = '';
+            
+        //     payments.forEach(payment => {
+        //         const row = tbody.insertRow();
+        //         row.insertCell().textContent = payment.teacherName;
+        //         row.insertCell().textContent = payment.date;
+        //         row.insertCell().textContent = payment.amount;
+        //     });
+        // }
+        
+        function showCurrentBill(bill) {
+            const currentBill = document.getElementById('currentBill');
+            currentBill.innerHTML = `
+                <h3>الفاتورة الحالية</h3>
+                <p>اسم المعلمة: ${bill.teacherName}</p>
+                <p>التاريخ: ${bill.date}</p>
+                <p>عدد الحاضرين: ${bill.attendees}</p>
+                <p>المبلغ: ${bill.amount}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
